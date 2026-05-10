@@ -6,63 +6,78 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0b0e11; color: #eaecef; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        html, body { height: 100%; width: 100%; background: #0b0e11; color: #eaecef; font-family: sans-serif; overflow: hidden; position: fixed; }
         #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0e11; display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
         .login-box { background: #1e2329; padding: 25px; border-radius: 12px; border: 1px solid #f3ba2f; width: 100%; max-width: 320px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #474d57; background: #2b3139; color: white; font-size: 16px; outline: none; }
-        .btn { background: #f3ba2f; color: black; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        #chat-screen { display: none; flex-direction: column; height: 100%; }
-        header { background: #1e2329; padding: 12px; text-align: center; color: #f3ba2f; font-weight: bold; border-bottom: 1px solid #474d57; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #474d57; background: #2b3139; color: white; font-size: 16px; outline: none; }
+        .gold-btn { background: #f3ba2f; color: black; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #chat-screen { display: none; flex-direction: column; height: 100%; width: 100%; }
+        header { background: #1e2329; padding: 15px; text-align: center; color: #f3ba2f; font-weight: bold; border-bottom: 1px solid #474d57; }
         #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { background: #1e2329; padding: 10px; border-radius: 8px; max-width: 85%; align-self: flex-start; border-left: 3px solid #0ecb81; }
-        .user { color: #f3ba2f; font-size: 11px; font-weight: bold; margin-bottom: 3px; }
-        .footer { background: #1e2329; padding: 10px; display: flex; gap: 8px; border-top: 1px solid #474d57; }
-    </style>
+        .msg { background: #1e2329; padding: 12px; border-radius: 10px; max-width: 85%; align-self: flex-start; border-left: 4px solid #0ecb81; }
+        .user-name { color: #f3ba2f; font-size: 11px; font-weight: bold; margin-bottom: 4px; }
+        img { max-width: 100%; border-radius: 6px; margin-top: 8px; display: block; }
+        .footer { background: #1e2329; padding: 10px; display: flex; gap: 8px; border-top: 1px solid #474d57; padding-bottom: env(safe-area-inset-bottom); }
+        #m { flex: 1; background: #2b3139; border: 1px solid #474d57; padding: 12px; border-radius: 8px; color: white; font-size: 16px; outline: none; }
+    </script>
 </head>
 <body>
     <div id="login-screen">
         <div class="login-box">
-            <h2 style="color:#f3ba2f;">P2P LOGIN</h2>
-            <input type="text" id="u" placeholder="Username">
-            <input type="password" id="p" placeholder="Password">
-            <button class="btn" onclick="login()">LOGIN</button>
+            <h2 style="color:#f3ba2f; margin-bottom:15px;">P2P LOGIN</h2>
+            <input type="text" id="user" placeholder="Username" spellcheck="false">
+            <input type="password" id="pass" placeholder="Password">
+            <button class="gold-btn" style="width:100%" onclick="doLogin()">ACCESS</button>
         </div>
     </div>
     <div id="chat-screen">
-        <header>P2P TERMINAL</header>
+        <header>SECURE P2P TERMINAL</header>
         <div id="messages"></div>
         <div class="footer">
+            <input type="file" id="fInp" accept="image/*" style="display:none">
+            <button onclick="document.getElementById('fInp').click()" style="background:#474d57; border:none; padding:10px; border-radius:8px; color:white;">📷</button>
             <input type="text" id="m" placeholder="Message..." autocomplete="off">
-            <button class="btn" style="width:70px" onclick="send()">SEND</button>
+            <button class="gold-btn" onclick="doSend()">SEND</button>
         </div>
     </div>
     <script>
         const socket = io();
         let myName = "";
-        const users = { "P2P TRADER KING👑": "63743", "CUSTOMER NO 447": "CN 447" };
-        function login() {
-            const user = document.getElementById('u').value;
-            const pass = document.getElementById('p').value;
-            if(users[user] === pass) {
-                myName = user;
+        const creds = { "P2P TRADER KING👑": "63743", "CUSTOMER NO 447": "CN 447" };
+        function doLogin() {
+            const u = document.getElementById('user').value.trim();
+            const p = document.getElementById('pass').value.trim();
+            if(creds[u] === p) {
+                myName = u;
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('chat-screen').style.display = 'flex';
-            } else { alert("Invalid!"); }
+                document.body.style.height = window.innerHeight + 'px';
+            } else { alert("Wrong ID/Pass!"); }
         }
-        function send() {
+        function render(data) {
+            const div = document.createElement('div');
+            div.className = 'msg';
+            if(data.isAutoReply) div.style.borderLeftColor = "#f3ba2f";
+            let html = data.type === 'text' ? `<div>${data.content}</div>` : `<img src="${data.content}">`;
+            div.innerHTML = `<div class="user-name">${data.user}</div>${html}`;
+            document.getElementById('messages').appendChild(div);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        }
+        function doSend() {
             const val = document.getElementById('m').value;
             if(val) {
                 socket.emit('chat message', { user: myName, type: 'text', content: val });
                 document.getElementById('m').value = '';
             }
         }
-        socket.on('chat message', (data) => {
-            const div = document.createElement('div');
-            div.className = 'msg';
-            div.innerHTML = `<div class="user">${data.user}</div><div>${data.content}</div>`;
-            document.getElementById('messages').appendChild(div);
-            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-        });
+        socket.on('load history', (h) => { h.forEach(render); });
+        socket.on('chat message', render);
+        document.getElementById('fInp').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => { socket.emit('chat message', { user: myName, type: 'img', content: ev.target.result }); };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+        document.getElementById('m').addEventListener("keypress", (e) => { if(e.key==="Enter") doSend(); });
     </script>
 </body>
 </html>
