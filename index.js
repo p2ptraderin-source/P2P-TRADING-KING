@@ -8,13 +8,13 @@ const PORT = process.env.PORT || 3000;
 
 const DB_FILE = './messages.json';
 
-// Load History
+// History Storage logic
 let chatHistory = [];
-try {
-    if (fs.existsSync(DB_FILE)) {
+if (fs.existsSync(DB_FILE)) {
+    try {
         chatHistory = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-    }
-} catch (err) { chatHistory = []; }
+    } catch (e) { chatHistory = []; }
+}
 
 app.use(express.static(__dirname));
 
@@ -23,17 +23,15 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    // Send history to new user
     socket.emit('load history', chatHistory);
 
     socket.on('chat message', (data) => {
         io.emit('chat message', data);
-        
         chatHistory.push(data);
         if(chatHistory.length > 100) chatHistory.shift(); 
         fs.writeFileSync(DB_FILE, JSON.stringify(chatHistory, null, 2));
 
-        // Auto-Reply for Customer 447
+        // Auto-reply logic
         if (data.user === "CUSTOMER NO 447" && !data.isAutoReply) {
             setTimeout(() => {
                 const reply = {
@@ -50,4 +48,4 @@ io.on('connection', (socket) => {
     });
 });
 
-http.listen(PORT, () => { console.log('Server is live!'); });
+http.listen(PORT, () => { console.log('Terminal is Active'); });
