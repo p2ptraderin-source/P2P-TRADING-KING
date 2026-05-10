@@ -1,26 +1,68 @@
-socket.on('chat message', ...)
-// Patha messages load cheyadaniki
-socket.on('load history', (history) => {
-    const area = document.getElementById('messages');
-    area.innerHTML = ""; // Clear current messages
-    history.forEach(data => {
-        renderMessage(data);
-    });
-});
-
-// Message render chese function (Clean ga untundi)
-function renderMessage(data) {
-    const div = document.createElement('div');
-    div.className = 'msg';
-    if(data.isAutoReply) div.style.borderLeftColor = "#f3ba2f";
-    let content = data.type === 'text' ? `<div>${data.content}</div>` : `<img src="${data.content}">`;
-    div.innerHTML = `<div class="user-name">${data.user}</div>${content}`;
-    const area = document.getElementById('messages');
-    area.appendChild(div);
-    area.scrollTop = area.scrollHeight;
-}
-
-// Chat message receive logic ippudu simple avthundi
-socket.on('chat message', (data) => {
-    renderMessage(data);
-});
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>P2P TERMINAL</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0b0e11; color: #eaecef; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0e11; display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .login-box { background: #1e2329; padding: 25px; border-radius: 12px; border: 1px solid #f3ba2f; width: 100%; max-width: 320px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #474d57; background: #2b3139; color: white; font-size: 16px; outline: none; }
+        .btn { background: #f3ba2f; color: black; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        #chat-screen { display: none; flex-direction: column; height: 100%; }
+        header { background: #1e2329; padding: 12px; text-align: center; color: #f3ba2f; font-weight: bold; border-bottom: 1px solid #474d57; }
+        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { background: #1e2329; padding: 10px; border-radius: 8px; max-width: 85%; align-self: flex-start; border-left: 3px solid #0ecb81; }
+        .user { color: #f3ba2f; font-size: 11px; font-weight: bold; margin-bottom: 3px; }
+        .footer { background: #1e2329; padding: 10px; display: flex; gap: 8px; border-top: 1px solid #474d57; }
+    </style>
+</head>
+<body>
+    <div id="login-screen">
+        <div class="login-box">
+            <h2 style="color:#f3ba2f;">P2P LOGIN</h2>
+            <input type="text" id="u" placeholder="Username">
+            <input type="password" id="p" placeholder="Password">
+            <button class="btn" onclick="login()">LOGIN</button>
+        </div>
+    </div>
+    <div id="chat-screen">
+        <header>P2P TERMINAL</header>
+        <div id="messages"></div>
+        <div class="footer">
+            <input type="text" id="m" placeholder="Message..." autocomplete="off">
+            <button class="btn" style="width:70px" onclick="send()">SEND</button>
+        </div>
+    </div>
+    <script>
+        const socket = io();
+        let myName = "";
+        const users = { "P2P TRADER KING👑": "63743", "CUSTOMER NO 447": "CN 447" };
+        function login() {
+            const user = document.getElementById('u').value;
+            const pass = document.getElementById('p').value;
+            if(users[user] === pass) {
+                myName = user;
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('chat-screen').style.display = 'flex';
+            } else { alert("Invalid!"); }
+        }
+        function send() {
+            const val = document.getElementById('m').value;
+            if(val) {
+                socket.emit('chat message', { user: myName, type: 'text', content: val });
+                document.getElementById('m').value = '';
+            }
+        }
+        socket.on('chat message', (data) => {
+            const div = document.createElement('div');
+            div.className = 'msg';
+            div.innerHTML = `<div class="user">${data.user}</div><div>${data.content}</div>`;
+            document.getElementById('messages').appendChild(div);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        });
+    </script>
+</body>
+</html>
