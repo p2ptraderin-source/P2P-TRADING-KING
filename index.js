@@ -6,15 +6,22 @@ const fs = require('fs');
 const path = require('path');
 const PORT = process.env.PORT || 3000;
 
-const DB_FILE = './messages.json';
+const DB_FILE = path.join(__dirname, 'messages.json');
 
-// History Storage logic
+// File load logic - logic better cheshanu
 let chatHistory = [];
-if (fs.existsSync(DB_FILE)) {
+function loadHistory() {
     try {
-        chatHistory = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-    } catch (e) { chatHistory = []; }
+        if (fs.existsSync(DB_FILE)) {
+            const data = fs.readFileSync(DB_FILE, 'utf8');
+            chatHistory = data ? JSON.parse(data) : [];
+        }
+    } catch (err) {
+        console.log("History load error:", err);
+        chatHistory = [];
+    }
 }
+loadHistory();
 
 app.use(express.static(__dirname));
 
@@ -23,13 +30,21 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection', (socket) => {
+    // Mobile lo reconnect ayina history vasthundi
     socket.emit('load history', chatHistory);
 
     socket.on('chat message', (data) => {
         io.emit('chat message', data);
+        
         chatHistory.push(data);
-        if(chatHistory.length > 100) chatHistory.shift(); 
-        fs.writeFileSync(DB_FILE, JSON.stringify(chatHistory, null, 2));
+        if(chatHistory.length > 200) chatHistory.shift(); 
+        
+        // Sync write vadithe fast ga save avthundi
+        try {
+            fs.writeFileSync(DB_FILE, JSON.stringify(chatHistory));
+        } catch (err) {
+            console.log("Save error:", err);
+        }
 
         // Auto-reply logic
         if (data.user === "CUSTOMER NO 447" && !data.isAutoReply) {
@@ -42,10 +57,10 @@ io.on('connection', (socket) => {
                 };
                 io.emit('chat message', reply);
                 chatHistory.push(reply);
-                fs.writeFileSync(DB_FILE, JSON.stringify(chatHistory, null, 2));
+                fs.writeFileSync(DB_FILE, JSON.stringify(chatHistory));
             }, 2000);
         }
     });
 });
 
-http.listen(PORT, () => { console.log('Terminal is Active'); });
+http.listen(PORT, () => { console.log('Server running...'); });
