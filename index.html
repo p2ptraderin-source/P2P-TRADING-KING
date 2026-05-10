@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>P2P TERMINAL</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0b0e11; color: #eaecef; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* LOGIN SCREEN */
+        #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#0b0e11; display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; }
+        .login-box { background:#1e2329; padding:25px; border-radius:12px; border:1px solid #f3ba2f; width:100%; max-width:320px; text-align:center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        input { width:100%; padding:14px; margin:10px 0; border-radius:6px; border:1px solid #474d57; background:#2b3139; color:white; font-size:16px; }
+        .gold-btn { background:#f3ba2f; color:black; border:none; padding:14px; width:100%; border-radius:6px; font-weight:bold; cursor:pointer; font-size:16px; }
+
+        /* CHAT SCREEN */
+        #chat-screen { display:none; flex-direction:column; height:100%; width:100%; }
+        header { background:#1e2329; padding:15px; text-align:center; color:#f3ba2f; font-weight:bold; border-bottom:1px solid #474d57; font-size:18px; }
+        
+        #messages { flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:column; gap:12px; background:#0b0e11; }
+        .msg { background:#1e2329; padding:12px; border-radius:10px; max-width:85%; align-self:flex-start; border-left:4px solid #0ecb81; }
+        .user-name { color:#f3ba2f; font-size:12px; font-weight:bold; margin-bottom:4px; }
+        img { max-width:100%; border-radius:6px; margin-top:8px; display:block; }
+
+        /* INPUT AREA FIX */
+        .footer { background:#1e2329; padding:12px; display:flex; gap:10px; border-top:1px solid #474d57; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+        #m { flex:1; background:#2b3139; border:1px solid #474d57; padding:12px; border-radius:6px; color:white; outline:none; font-size:16px; }
+        .icon-btn { background:#474d57; color:white; padding:10px 15px; border-radius:6px; cursor:pointer; border:none; font-size:20px; }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <h2 style="color:#f3ba2f; margin-bottom:15px;">P2P ACCESS</h2>
+            <input type="text" id="user" placeholder="Username">
+            <input type="password" id="pass" placeholder="Password">
+            <button class="gold-btn" onclick="doLogin()">ACCESS TERMINAL</button>
+        </div>
+    </div>
+
+    <div id="chat-screen">
+        <header>SECURE P2P TERMINAL</header>
+        <div id="messages"></div>
+        <div class="footer">
+            <input type="file" id="fInp" accept="image/*" style="display:none">
+            <button class="icon-btn" onclick="document.getElementById('fInp').click()">📷</button>
+            <input type="text" id="m" placeholder="Message..." autocomplete="off">
+            <button class="gold-btn" style="width:75px;" onclick="doSend()">SEND</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let myName = "";
+        const creds = { "P2P TRADER KING👑": "63743", "CUSTOMER NO 447": "CN 447" };
+
+        function doLogin() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            if(creds[u] === p) {
+                myName = u;
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('chat-screen').style.display = 'flex';
+            } else { alert("Invalid Credentials!"); }
+        }
+
+        function doSend() {
+            const val = document.getElementById('m').value;
+            if(val) {
+                socket.emit('chat message', { user: myName, type: 'text', content: val });
+                document.getElementById('m').value = '';
+            }
+        }
+
+        document.getElementById('fInp').onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    socket.emit('chat message', { user: myName, type: 'img', content: ev.target.result });
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        socket.on('chat message', (data) => {
+            const div = document.createElement('div');
+            div.className = 'msg';
+            if(data.isAutoReply) div.style.borderLeftColor = "#f3ba2f";
+            
+            let contentHTML = data.type === 'text' ? `<div>${data.content}</div>` : `<img src="${data.content}">`;
+            div.innerHTML = `<div class="user-name">${data.user}</div>${contentHTML}`;
+            
+            const area = document.getElementById('messages');
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        });
+
+        document.getElementById('m').addEventListener("keypress", (e) => { if(e.key==="Enter") doSend(); });
+    </script>
+</body>
+</html>
